@@ -8,6 +8,8 @@ def solve(tasks):
     Returns:
         output: list of igloos in order of polishing  
     """
+    # first we have to sort the file
+    tasks.sort(key = lambda x: x.get_max_benefit())
     pass
 
 
