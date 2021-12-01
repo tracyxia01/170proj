@@ -30,7 +30,7 @@ def solve(tasks):
     return list(sequence)
 
 def find_slot(end_time, timeslots, id, duration):
-    time_copy = timeslots
+    time_copy = timeslots.copy()
     for i in range(end_time-1, max(-1, end_time-duration-1), -1):
         if timeslots[i] == 0:
             time_copy[i] = id
