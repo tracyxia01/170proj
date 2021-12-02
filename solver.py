@@ -19,11 +19,11 @@ def solve(tasks):
         while not found_slot:
             if deadline <= 0:
                 break
-            found_slot, time_copy = find_slot(deadline, timeslots, id, duration)
+            found_slot, time_copy, cut = find_slot(deadline, timeslots, id, duration)
             if found_slot:
-                timeslots = time_copy
+                timeslots = time_copy.copy()
                 break
-            deadline -= 1
+            deadline = cut - 1
     sequence = set(timeslots)
     sequence.discard(0)
     #print(list(sequence))
@@ -31,12 +31,14 @@ def solve(tasks):
 
 def find_slot(end_time, timeslots, id, duration):
     time_copy = timeslots.copy()
-    for i in range(end_time-1, max(-1, end_time-duration-1), -1):
+    if end_time-duration < 0:
+        return False, timeslots, 0
+    for i in range(end_time-1, end_time-duration-1, -1):
         if timeslots[i] == 0:
             time_copy[i] = id
         else:
-            return False, timeslots
-    return True, time_copy
+            return False, timeslots, i+1
+    return True, time_copy, 0
 
 
 if __name__ == '__main__':
