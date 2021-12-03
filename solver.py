@@ -15,30 +15,25 @@ def solve(tasks):
         id = task.get_task_id()
         deadline = task.get_deadline()
         duration = task.get_duration()
-        found_slot = False
-        while not found_slot:
-            if deadline <= 0:
-                break
-            found_slot, time_copy, cut = find_slot(deadline, timeslots, id, duration)
-            if found_slot:
-                timeslots = time_copy.copy()
-                break
-            deadline = cut - 1
+        find_slot(deadline, timeslots, id, duration)
     sequence = set(timeslots)
     sequence.discard(0)
     #print(list(sequence))
     return list(sequence)
 
 def find_slot(end_time, timeslots, id, duration):
-    time_copy = timeslots.copy()
-    if end_time-duration < 0:
-        return False, timeslots, 0
-    for i in range(end_time-1, end_time-duration-1, -1):
-        if timeslots[i] == 0:
-            time_copy[i] = id
+    curr_end = end_time
+    curr_start = curr_end - duration
+    found = False
+
+    while curr_start >= 0 and not found:
+        if sum(timeslots[curr_start + 1 : curr_end]) == 0:
+            for i in range(curr_start, curr_end):
+                timeslots[i] = id
+            found = True
         else:
-            return False, timeslots, i+1
-    return True, time_copy, 0
+            curr_end -=  1
+            curr_start -= 1
 
 
 if __name__ == '__main__':
