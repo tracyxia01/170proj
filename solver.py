@@ -23,7 +23,7 @@ def solve(tasks):
 
 def find_slot(end_time, timeslots, id, duration):
     curr_end = end_time
-    curr_start = curr_end - duration
+    curr_start = curr_end - duration + 1
     found = False
 
     while curr_start >= 0 and not found:
