@@ -27,7 +27,7 @@ def find_slot(end_time, timeslots, id, duration):
     found = False
 
     while curr_start >= 0 and not found:
-        if sum(timeslots[curr_start + 1 : curr_end]) == 0:
+        if sum(timeslots[curr_start + 1 : curr_end - 1]) == 0:
             for i in range(curr_start, curr_end):
                 timeslots[i] = id
             found = True
