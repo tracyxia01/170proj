@@ -10,26 +10,21 @@ def solve(tasks):
     """
     # first we have to sort the file
     tasks.sort(key = lambda x: x.get_max_benefit())
-    timeslots = [0] * 1440
+    timeslots = [0] * 1440 # so it ranges from 0 to 1439
     for task in tasks:
         id = task.get_task_id()
         deadline = task.get_deadline()
         duration = task.get_duration()
-        found_slot = False
-        while not found_slot:
-            if deadline <= 0:
-                break
-            found_slot, time_copy, cut = find_slot(deadline, timeslots, id, duration)
-            if found_slot:
-                timeslots = time_copy.copy()
-                break
-            deadline = cut - 1
+        find_time(deadline, timeslots, id, duration)
     sequence = set(timeslots)
     sequence.discard(0)
     #print(list(sequence))
     return list(sequence)
 
+# What does this function do? 
 def find_slot(end_time, timeslots, id, duration):
+    # make a copy of the current times slot
+    # OK This function isnt that accurate Imma write a new one
     time_copy = timeslots.copy()
     if end_time-duration < 0:
         return False, timeslots, 0
@@ -40,6 +35,28 @@ def find_slot(end_time, timeslots, id, duration):
             return False, timeslots, i+1
     return True, time_copy, 0
 
+# passes in the current task information
+# fill in the timeslot if we can find one
+# if not, don't do anything
+# Return nothing. So we distructively modify the timeslot. 
+def find_time(end_time, timeslots, id, duration):
+    # set up the start and end time
+    curr_end = end_time
+    curr_start = curr_end - duration + 1
+    found = False
+    # we want to look at every reasonable spot 
+    # We also have to take into consideration that 
+    # the next task starts at the same task the prev was finished
+    while curr_start >= 0 and not found:
+        # so ignore the start and end, as long as the middle ones are all zero
+        if sum(timeslots[curr_start + 1 : curr_end]) == 0:
+            for i in range(curr_start, curr_end + 1):
+                # We have to check if the entire timeslot if 0
+                timeslots[i] = id
+                found = True
+        else:
+            curr_end -=  1
+            curr_start -= 1
 
 if __name__ == '__main__':
     for input_path in os.listdir('inputs/'):
