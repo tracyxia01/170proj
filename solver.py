@@ -8,6 +8,13 @@ def solve(tasks):
     Returns:
         output: list of igloos in order of polishing
     """
+    # 1. find_base
+    base = find_base(tasks)
+    # 2. siumlated annealing on the base
+    
+
+
+def find_base(tasks):
     # first we have to sort the file
     tasks.sort(key = lambda x: x.get_max_benefit())
     timeslots = [0] * 1440 # so it ranges from 0 to 1439
@@ -20,20 +27,6 @@ def solve(tasks):
     sequence.discard(0)
     #print(list(sequence))
     return list(sequence)
-
-# What does this function do? 
-def find_slot(end_time, timeslots, id, duration):
-    # make a copy of the current times slot
-    # OK This function isnt that accurate Imma write a new one
-    time_copy = timeslots.copy()
-    if end_time-duration < 0:
-        return False, timeslots, 0
-    for i in range(end_time-1, end_time-duration-1, -1):
-        if timeslots[i] == 0:
-            time_copy[i] = id
-        else:
-            return False, timeslots, i+1
-    return True, time_copy, 0
 
 # passes in the current task information
 # fill in the timeslot if we can find one
