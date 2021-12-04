@@ -183,7 +183,7 @@ def shift_tasks_backward(deadline, duration, current_i):
     extra_space_needed = duration - (deadline - start_empty) # find how much back shifts needed
     delay = extra_space_needed
     # if current task is not the last task
-    if current_i != tasks_global.length - 1:
+    if current_i != len(tasks_global) - 1:
         # determine if we should place this task with reduced profit by comparing it with next most profitable task
         next_task = tasks_global[current_i + 1]
         next_ratio = next_task.get_max_benefit() / next_task.get_duration()
@@ -209,10 +209,10 @@ def shift_tasks_backward(deadline, duration, current_i):
     # add all the non-zero slots to the temp shifted_timeslots first
     for i in range(deadline, back_shift_end):
         if timeslots[i] != 0:
-            timeslots_with_shifts.append(timeslots[i])
+            shifted_timeslots.append(timeslots[i])
         else:
             zero_counter += 1
-    # add the empty slots to the front
+    # add the empt y slots to the front
     shifted_timeslots = [0] * zero_counter + shifted_timeslots
     # the two ptrs are starting ptrs
     preshift_ptr = deadline
@@ -232,8 +232,8 @@ def shift_tasks_backward(deadline, duration, current_i):
             return False
         """
         curr_task = tasks_global[timeslots[preshift_ptr]]
-        pre_late_min = preshift_ptr + curr_task.get_duration - curr_task.get_deadline()
-        post_late_min = postshift_ptr + curr_task.get_duration - curr_task.get_deadline()
+        pre_late_min = preshift_ptr + curr_task.get_duration() - curr_task.get_deadline()
+        post_late_min = postshift_ptr + curr_task.get_duration() - curr_task.get_deadline()
         # also need to consider tasks in preshift might also be overtime resulted from a previous iteration
         pre_benefit = curr_task.get_max_benefit() if pre_late_min <= 0 else curr_task.get_late_benefit(pre_late_min)
         post_benefit = curr_task.get_max_benefit() if post_late_min <= 0 else curr_task.get_late_benefit(post_late_min)
@@ -242,7 +242,7 @@ def shift_tasks_backward(deadline, duration, current_i):
     # Compare losses, and if the profit loss of later tasks in item caused by delay is more than the
     # partial profit brought by the current tasks, then don't add current task.
     # OPTIMIZATION BE LIKE BRRRRR yeah idk but like if even if we get more profits by adding current delay one still gotta compare next one ig lmao
-    if loss > current_ratio_with_delay - losses > 0.6 * next_task.get_max_benefit():
+    if current_ratio_with_delay - loss > 0.6 * next_task.get_max_benefit():
         return False
     # if we do include current task, copy the temp shifted_timeslots to the actual timeslots
     for i in range(deadline, back_shift_end):
@@ -279,7 +279,7 @@ def actual_forward_shift(front, deadline):
     # add all the non-zero slots to the temp shifted_timeslots first
     for i in range(front, deadline):
         if timeslots[i] != 0:
-            timeslots_with_shifts.append(timeslots[i])
+            shifted_timeslots.append(timeslots[i])
         else:
             zero_counter += 1
     # add the empty slots in the back
