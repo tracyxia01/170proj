@@ -10,7 +10,7 @@ def solve(tasks):
     """
     base = basic_greedy(tasks) # We first find the bast 
     res = simulated_annealing(base) # apply simulated annealing to the base array
-    return res
+    return [task.id for task in res]
     
 
 
@@ -19,40 +19,39 @@ def basic_greedy(tasks):
     Args:
         tasks: list[Task], list of igloos to polish
     Returns:
-        output: a basic solution obtained by greedy. Served as the starting point for SA. 
+        output: list[task] 
+        A basic solution obtained by greedy. Served as the starting point for SA. 
     """
     # first we have to sort the file
     tasks.sort(key = lambda x: x.get_max_benefit())
     timeslots = [0] * 1440
     for task in tasks:
-        id = task.get_task_id()
-        deadline = task.get_deadline()
-        duration = task.get_duration()
-        find_slot(deadline, timeslots, id, duration)
+        find_slot(task, timeslots)
+    # Question: can we keep a list of jobs that are not used?  
     sequence = set(timeslots)
-    sequence.discard(0)
-    #print(list(sequence))
+    sequence.discard(0) # what does this do?  
     return list(sequence)
 
-def find_slot(end_time, timeslots, id, duration):
+def find_slot(task, timeslots):
     """
     Args:
-        end_time: the end time of the current task
+        task: the task we are trying to put in the timeslot
         timeslots: the current order of tasks already assigned
-        id: the id of current task
-        duration: duration of the current task
     Returns:
         discrutively modify timeslots to put our current job in it. 
         Doesn't return anything.  
     """
-    curr_end = end_time
+    deadline = task.get_deadline()
+    duration = task.get_duration()
+
+    curr_end = deadline
     curr_start = curr_end - duration
     found = False
 
     while curr_start >= 0 and not found:
-        if sum(timeslots[curr_start : curr_end]) == 0:
+        if sum(timeslots[curr_start + 1 : curr_end]) == 0:
             for i in range(curr_start, curr_end):
-                timeslots[i] = id
+                timeslots[i] = task
             found = True
         else:
             # we shift and compare 
@@ -89,7 +88,22 @@ def permute(task_lst):
 
 def cost(task_lst):
     # TODO
-    pass
+    """
+    Returns:
+        total_cost: the total cost of this task list
+        num_b4_ddl_pass: the number of tasks we actually completed. 
+        I will explain this later lol ik it's confusing. 
+    """
+    time_spent, total_cost = 0, 0
+    num_b4_ddl_pass = 0
+    for i, task in enumerate(task_lst):
+        if time_spent > 1440:
+            num_b4_ddl_pass = i
+            break
+        end_time = time_spent + task.get_duration()
+        ddl = task.get_deadline()
+        total_cost += task.get_late_benefit(max(0, end_time - ddl))
+    return total_cost, num_b4_ddl_pass
 
 if __name__ == '__main__':
     for input_path in os.listdir('inputs/'):
