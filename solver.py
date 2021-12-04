@@ -290,14 +290,19 @@ def actual_forward_shift(front, deadline):
 
 
 if __name__ == '__main__':
+    counter = 0
     for input_path in os.listdir('inputs/'):
-        if input_path == '.DS_Store':
+        if input_path == 'small':
+            for input_path2 in os.listdir('inputs/' + input_path):
+                if counter < 10:
+                    counter += 1
+                    if input_path2 == '.ipynb_checkpoints' or input_path2 == '.DS_Store':
+                        continue
+                    output_path = 'outputs/' + input_path + '/' + input_path2[:-3] + '.out'
+                    tasks = read_input_file('inputs/' + input_path + '/' + input_path2[:-3] + '.in')
+                    output = solve(tasks)
+                    write_output_file(output_path, output)
+                else:
+                    break
+        else:
             continue
-        for input_path2 in os.listdir('inputs/' + input_path):
-             #print(input_path2)
-             if input_path2 == '.ipynb_checkpoints' or input_path2 == '.DS_Store':
-                 continue
-             output_path = 'outputs/' + input_path + '/' + input_path2[:-3] + '.out'
-             tasks = read_input_file('inputs/' + input_path + '/' + input_path2[:-3] + '.in')
-             output = solve(tasks)
-             write_output_file(output_path, output)
