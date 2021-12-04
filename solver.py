@@ -12,9 +12,8 @@ def solve(tasks):
         output: list of igloos in order of polishing
     """
     base, last_task = basic_greedy(tasks) # We first find the base 
-    res = simulated_annealing(base, last_task) # apply simulated annealing to the base array
-    # TODO: cutting out everything after the deadline
-    return [task.id for task in res]
+    res, index = simulated_annealing(base, last_task) # apply simulated annealing to the base array
+    return [task.get_task_id() for task in res[:index+1]]
     
 
 def basic_greedy(tasks):
@@ -29,9 +28,12 @@ def basic_greedy(tasks):
     tasks.sort(key = lambda x: x.get_max_benefit())
     tasks_cp = copy.copy(tasks)
     timeslots = [0] * 1440
-    for i, task in enumerate(tasks):
-        if find_slot(task, timeslots):
-            tasks_cp.pop(i)
+    for i in range(len(tasks)):
+        if find_slot(tasks[i], timeslots):
+            tasks_cp[i] = 0
+    y = set(tasks_cp)
+    y.discard(0)
+    tasks_cp = list(y)
 
     # Post processing  
     sequence = set(timeslots)
@@ -57,7 +59,7 @@ def find_slot(task, timeslots):
     found = False
 
     while curr_start >= 0 and not found:
-        if sum(timeslots[curr_start + 1 : curr_end]) == 0:
+        if all([isinstance(i,int) for i in timeslots[curr_start + 1 : curr_end]]):
             for i in range(curr_start, curr_end):
                 timeslots[i] = task
             found = True
@@ -78,8 +80,9 @@ def simulated_annealing(s, last_task):
     t = 200 # should be large. But need further testing
     while not t: 
         s_prime = permute(s, last_task)
+        old_cost, old_last_task = cost(s)
         new_cost, last_task = cost(s_prime)
-        delta = new_cost - cost(s)[0]
+        delta = new_cost - old_cost
         if delta > 0:
             s = s_prime
         else:
@@ -89,8 +92,10 @@ def simulated_annealing(s, last_task):
             epsilon = random.random()
             if epsilon > p:
                 s = s_prime
+            else:
+                last_task = old_last_task
         t -= 1
-    return s
+    return s, last_task
 
 def freeze(task_lst):
     # TODO
