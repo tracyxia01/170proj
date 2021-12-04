@@ -1,5 +1,8 @@
 from parse import read_input_file, write_output_file
 import os
+import copy
+import random
+import math
 
 def solve(tasks):
     """
@@ -8,29 +11,35 @@ def solve(tasks):
     Returns:
         output: list of igloos in order of polishing
     """
-    base = basic_greedy(tasks) # We first find the bast 
-    res = simulated_annealing(base) # apply simulated annealing to the base array
+    base, last_task = basic_greedy(tasks) # We first find the base 
+    res = simulated_annealing(base, last_task) # apply simulated annealing to the base array
+    # TODO: cutting out everything after the deadline
     return [task.id for task in res]
     
-
 
 def basic_greedy(tasks):
     """
     Args:
         tasks: list[Task], list of igloos to polish
     Returns:
-        output: list[task] 
-        A basic solution obtained by greedy. Served as the starting point for SA. 
+        output: list[task] A basic solution obtained by greedy. Served as the starting point for SA.
+        task_cp: list[task] tasks we haven't used
     """
     # first we have to sort the file
     tasks.sort(key = lambda x: x.get_max_benefit())
+    tasks_cp = copy.copy(tasks)
     timeslots = [0] * 1440
-    for task in tasks:
-        find_slot(task, timeslots)
-    # Question: can we keep a list of jobs that are not used?  
+    for i, task in enumerate(tasks):
+        if find_slot(task, timeslots):
+            tasks_cp.pop(i)
+
+    # Post processing  
     sequence = set(timeslots)
-    sequence.discard(0) # what does this do?  
-    return list(sequence)
+    sequence.discard(0)
+    x = list(sequence)
+    last_index = len(x) - 1
+    x.extend(tasks_cp)
+    return x, last_index
 
 def find_slot(task, timeslots):
     """
@@ -38,8 +47,7 @@ def find_slot(task, timeslots):
         task: the task we are trying to put in the timeslot
         timeslots: the current order of tasks already assigned
     Returns:
-        discrutively modify timeslots to put our current job in it. 
-        Doesn't return anything.  
+        found: True if we can find a time_slot, False if we cannot  
     """
     deadline = task.get_deadline()
     duration = task.get_duration()
@@ -57,42 +65,54 @@ def find_slot(task, timeslots):
             # we shift and compare 
             curr_end -=  1
             curr_start -= 1
+    return found
 
-
-def simulated_annealing(s):
+def simulated_annealing(s, last_task):
     """
     Args: 
-        task_lst: the initial lst for SA
+        s: the initial lst for SA
+        last_task: index of the last task completed before the deadline
     Returns:
         output: the final task array with optimal values
     """
-    t = 20 # should be large. But need further testing
-    while not freeze(s): 
-        s_prime = permute(s)
-        delta = cost(s_prime) - cost(s)
-        if delta < 0:
+    t = 200 # should be large. But need further testing
+    while not t: 
+        s_prime = permute(s, last_task)
+        new_cost, last_task = cost(s_prime)
+        delta = new_cost - cost(s)[0]
+        if delta > 0:
             s = s_prime
         else:
             # TODO
             # replace s = s_price with probability of e^(-delta/t)
-            pass
-    return 0
+            p = min(1, math.exp(delta/t))
+            epsilon = random.random()
+            if epsilon > p:
+                s = s_prime
+        t -= 1
+    return s
 
 def freeze(task_lst):
     # TODO
     pass
 
-def permute(task_lst):
+def permute(task_lst, not_used):
     # TODO
-    pass
+    # given a task, we need to know where the num_b4_ddl_pass is 
+    cp = copy.copy(task_lst)
+    i = random.randint(0, not_used)
+    j = random.randint(0, len(task_lst)-1)
+    temp = cp[i]
+    cp[i] = cp[j]
+    cp[j] = temp
+    return cp
 
 def cost(task_lst):
     # TODO
     """
     Returns:
         total_cost: the total cost of this task list
-        num_b4_ddl_pass: the number of tasks we actually completed. 
-        I will explain this later lol ik it's confusing. 
+        num_b4_ddl_pass: the index of last tasks can we actually completed before the deadline. 
     """
     time_spent, total_cost = 0, 0
     num_b4_ddl_pass = 0
