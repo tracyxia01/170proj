@@ -65,17 +65,19 @@ Helper functions:
     actual_forward_shift(front, deadline): function that performs the actual front shift work
 """
 
-# global variable 
+# global variable
 timeslots = [0] * 1440  # timeslots : 0 ~ 1439
 tasks_global = None             # current task
 
 def solve(tasks):
     # sort all tasks in increasing profit/duration ratio
     tasks.sort(key = lambda x: x.get_max_benefit() / x.get_duration())
+    global timeslots
     #set global tasks:
+    global tasks_global
     tasks_global = tasks
     # start iteration; for loop is modified to obtain i
-    for i in range(tasks.length):
+    for i in range(len(tasks)):
         task = tasks[i]
         id = task.get_task_id()
         deadline = task.get_deadline()
@@ -87,7 +89,7 @@ def solve(tasks):
         # Step 2-4 are for cases where we can't find places if we don't shift
         if not place_task_before_ddl(id, deadline, duration):
             # before running step 2, calcuate the amount of the free space from 0 to current deadline,
-            # and if there are less space than duration, then skip step 2 and jump to step 3 
+            # and if there are less space than duration, then skip step 2 and jump to step 3
             if if_enough_space(deadline, duration):
                 # Step 2: start shifting tasks backwards from t = deadline - 1 to t = 0
                 shift_tasks_forward(deadline, duration)
@@ -153,7 +155,7 @@ def shift_tasks_forward(deadline, duration):
             # if the length of the free space is equal to duration, then return; note that we want to shift minimally
             if counter == duration:
 
-                return 
+                return
     '''
     # front is ther pointer; iterate backwards
     for front in range(deadline - 1, -1, -1):
@@ -164,7 +166,7 @@ def shift_tasks_forward(deadline, duration):
                 # performing shift
                 actual_forward_shift(front, deadline)
                 return
- 
+
 # TODO: step 3
 # shift tasks in forward sequence from t = deadline to t = 1439 in an interative way
 # shift tasks backward
@@ -192,18 +194,18 @@ def shift_tasks_backward(deadline, duration, current_i):
     # back_shift_end: the end on the timeslots for all tasks after deadline to shift backwards
     # timeslot[back_shift_end] is not included in the shifts; back_shift_end - 1 is included
     back_shift_end = deadline
-    while back_shift_end < 1440 and extra_space_needed > 0
+    while back_shift_end < 1440 and extra_space_needed > 0:
         if timeslots[back_shift_end] == 0:
             extra_space_needed -= 1
         back_shift_end += 1
     # shift necessary shifts backwards first
     shifted_timeslots = []
     zero_counter = 0
-    
+
     ###
     ### TODO: simplify logic for shifting "blue region" tasks backwards
     ###
-    
+
     # add all the non-zero slots to the temp shifted_timeslots first
     for i in range(deadline, back_shift_end):
         if timeslots[i] != 0:
@@ -236,14 +238,14 @@ def shift_tasks_backward(deadline, duration, current_i):
         pre_benefit = curr_task.get_max_benefit() if pre_late_min <= 0 else curr_task.get_late_benefit(pre_late_min)
         post_benefit = curr_task.get_max_benefit() if post_late_min <= 0 else curr_task.get_late_benefit(post_late_min)
         loss = loss + pre_benefit - post_benefit
-        
-    # Compare losses, and if the profit loss of later tasks in item caused by delay is more than the 
-    # partial profit brought by the current tasks, then don't add current task. 
+
+    # Compare losses, and if the profit loss of later tasks in item caused by delay is more than the
+    # partial profit brought by the current tasks, then don't add current task.
     # OPTIMIZATION BE LIKE BRRRRR yeah idk but like if even if we get more profits by adding current delay one still gotta compare next one ig lmao
-    if loss > current_ratio_with_delay - losses > 0.6 * next_task.get_max_benefit()
+    if loss > current_ratio_with_delay - losses > 0.6 * next_task.get_max_benefit():
         return False
     # if we do include current task, copy the temp shifted_timeslots to the actual timeslots
-    for i in range(deadline, back_shift_end)
+    for i in range(deadline, back_shift_end):
         timeslots[i] = shifted_timeslots[i - deadline]
     return True
 
@@ -254,7 +256,7 @@ def shift_tasks_backward(deadline, duration, current_i):
 def if_enough_space(deadline, duration):
     counter = 0
     for i in range(0, deadline):
-        if timeslots[i] = 0:
+        if timeslots[i] == 0:
             i += 1
         if counter >= duration:
             return True
@@ -283,9 +285,9 @@ def actual_forward_shift(front, deadline):
     # add the empty slots in the back
     shifted_timeslots = shifted_timeslots + [0] * zero_counter
     # copy the temp shifted_timeslots to the actual timeslots
-    for i in range(front, deadline)
+    for i in range(front, deadline):
         timeslots[i] = shifted_timeslots[i - front]
-        
+
 
 if __name__ == '__main__':
     for input_path in os.listdir('inputs/'):
