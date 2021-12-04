@@ -18,14 +18,12 @@ def solve(tasks):
         find_slot(deadline, timeslots, id, duration)
     sequence = set(timeslots)
     sequence.discard(0)
-    #print(list(sequence))
     return list(sequence)
 
 def find_slot(end_time, timeslots, id, duration):
     curr_end = end_time
     curr_start = curr_end - duration
     found = False
-
     while curr_start >= 0 and not found:
         if sum(timeslots[curr_start : curr_end]) == 0:
             for i in range(curr_start, curr_end):
