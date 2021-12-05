@@ -71,7 +71,8 @@ tasks_global = None             # current task
 
 def solve(tasks):
     # sort all tasks in increasing profit/duration ratio
-    tasks.sort(key = lambda x: x.get_max_benefit() / x.get_duration())
+    tasks.sort(reverse = True, key = lambda x: (x.get_max_benefit() / x.get_duration()))
+    # tasks.sort(key = lambda x: (x.get_max_benefit()))
     global timeslots
     #set global tasks:
     global tasks_global
@@ -90,6 +91,8 @@ def solve(tasks):
         if not place_task_before_ddl(id, deadline, duration):
             # before running step 2, calcuate the amount of the free space from 0 to current deadline,
             # and if there are less space than duration, then skip step 2 and jump to step 3
+            """
+            # orignal solution; commented out for now to ignore running step 3
             if if_enough_space(deadline, duration):
                 # Step 2: start shifting tasks backwards from t = deadline - 1 to t = 0
                 shift_tasks_forward(deadline, duration)
@@ -99,6 +102,30 @@ def solve(tasks):
             # Step 4: if we decide not to place current task, revert timeslot to before step 2 condition
             if not if_place_task:
                 timeslots = timeslots_copy
+            """
+
+            # for now we don't run step 3
+            if if_enough_space(deadline, duration):
+                # Step 2: start shifting tasks backwards from t = deadline - 1 to t = 0
+                start = shift_tasks_forward(deadline, duration)
+                place_task(id, start, duration)
+            else:
+                timeslots = timeslots_copy
+
+            """
+            # nerfed step 3
+            if if_enough_space(deadline, duration):
+                # Step 2: start shifting tasks backwards from t = deadline - 1 to t = 0
+                shift_tasks_forward(deadline, duration)
+                place_task(id, start, duration)
+            # Step 3: shift current task backward so that it finishes after its duration
+            if_place_task = shift_tasks_backward(deadline, duration, i)
+            # Step 4: if we decide not to place current task, revert timeslot to before step 2 condition
+            if not if_place_task:
+                timeslots = timeslots_copy
+            """
+
+
     # format timeslots for the final output
     output_sequence = set(timeslots)
     output_sequence.discard(0)
@@ -135,6 +162,7 @@ def place_task_before_ddl(id, deadline, duration):
 # shift tasks forward
 # determined the partial shift needed
 # implemented with an one pointer approach
+# returns the starting time of empty slots
 def shift_tasks_forward(deadline, duration):
     # note that if we run step 2, then there must be enough free space to place task 2
     counter = 0
@@ -164,8 +192,8 @@ def shift_tasks_forward(deadline, duration):
             # if the length of the free space is equal to duration, then perform shifts return; note that we want to shift minimally
             if counter == duration:
                 # performing shift
-                actual_forward_shift(front, deadline)
-                return
+                start = actual_forward_shift(front, deadline)
+                return start
 
 # TODO: step 3
 # shift tasks in forward sequence from t = deadline to t = 1439 in an interative way
@@ -198,13 +226,16 @@ def shift_tasks_backward(deadline, duration, current_i):
         if timeslots[back_shift_end] == 0:
             extra_space_needed -= 1
         back_shift_end += 1
-    # shift necessary shifts backwards first
-    shifted_timeslots = []
-    zero_counter = 0
+
+    """
 
     ###
     ### TODO: simplify logic for shifting "blue region" tasks backwards
     ###
+
+    # shift necessary shifts backwards first
+    shifted_timeslots = []
+    zero_counter = 0
 
     # add all the non-zero slots to the temp shifted_timeslots first
     for i in range(deadline, back_shift_end):
@@ -226,11 +257,11 @@ def shift_tasks_backward(deadline, duration, current_i):
         # pre and post just means pre and post backward shifts
         pre_ID = timeslots[preshift_ptr]
         post_ID = timeslots[postshift_ptr]
-        """
+        '''
         # TODO: unsure how to handle exception here but pre_ID and post_ID should be the same
         if pre_ID != post_ID:
             return False
-        """
+        '''
         curr_task = tasks_global[timeslots[preshift_ptr]]
         pre_late_min = preshift_ptr + curr_task.get_duration() - curr_task.get_deadline()
         post_late_min = postshift_ptr + curr_task.get_duration() - curr_task.get_deadline()
@@ -248,6 +279,7 @@ def shift_tasks_backward(deadline, duration, current_i):
     for i in range(deadline, back_shift_end):
         timeslots[i] = shifted_timeslots[i - deadline]
     return True
+    """
 
 
 # helper function
@@ -257,7 +289,7 @@ def if_enough_space(deadline, duration):
     counter = 0
     for i in range(0, deadline):
         if timeslots[i] == 0:
-            i += 1
+            counter += 1
         if counter >= duration:
             return True
     return False
@@ -273,6 +305,7 @@ def place_task(id, start, duration):
 # shift n time slots forward
 # back - front = n, but in total there are n + 1 slots involved
 # O(n) runtime
+# returns the starting time of empty slots
 def actual_forward_shift(front, deadline):
     shifted_timeslots = []
     zero_counter = 0
@@ -287,22 +320,20 @@ def actual_forward_shift(front, deadline):
     # copy the temp shifted_timeslots to the actual timeslots
     for i in range(front, deadline):
         timeslots[i] = shifted_timeslots[i - front]
+    return deadline - zero_counter
 
 
 if __name__ == '__main__':
     counter = 0
     for input_path in os.listdir('inputs/'):
-        if input_path == 'small':
-            for input_path2 in os.listdir('inputs/' + input_path):
-                if counter < 10:
-                    counter += 1
-                    if input_path2 == '.ipynb_checkpoints' or input_path2 == '.DS_Store':
-                        continue
-                    output_path = 'outputs/' + input_path + '/' + input_path2[:-3] + '.out'
-                    tasks = read_input_file('inputs/' + input_path + '/' + input_path2[:-3] + '.in')
-                    output = solve(tasks)
-                    write_output_file(output_path, output)
-                else:
-                    break
+        if input_path == '.DS_Store':
+            continue
+        for input_path2 in os.listdir('inputs/' + input_path):
+            if input_path2 == '.ipynb_checkpoints' or input_path2 == '.DS_Store':
+                continue
+            output_path = 'outputs/' + input_path + '/' + input_path2[:-3] + '.out'
+            tasks = read_input_file('inputs/' + input_path + '/' + input_path2[:-3] + '.in')
+            output = solve(tasks)
+            write_output_file(output_path, output)
         else:
             continue
