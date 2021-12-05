@@ -25,7 +25,7 @@ def basic_greedy(tasks):
         task_cp: list[task] tasks we haven't used
     """
     # first we have to sort the file
-    tasks.sort(key = lambda x: x.get_max_benefit())
+    tasks.sort(key = lambda x: x.get_max_benefit(), reverse = True)
     tasks_cp = copy.copy(tasks)
     timeslots = [0] * 1440
     for i in range(len(tasks)):
@@ -78,7 +78,8 @@ def simulated_annealing(s, last_task):
         output: the final task array with optimal values
     """
     t = 200 # should be large. But need further testing
-    while not t: 
+    k = 2000
+    while not k: 
         s_prime = permute(s, last_task)
         old_cost, old_last_task = cost(s)
         new_cost, last_task = cost(s_prime)
@@ -95,6 +96,7 @@ def simulated_annealing(s, last_task):
             else:
                 last_task = old_last_task
         t -= 1
+        k -= 1
     return s, last_task
 
 def freeze(task_lst):
