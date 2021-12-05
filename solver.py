@@ -13,8 +13,24 @@ def solve(tasks):
     """
     base, last_task = basic_greedy(tasks) # We first find the base 
     res, index = simulated_annealing(base, last_task) # apply simulated annealing to the base array
-    return [task.get_task_id() for task in res[:index+1]]
+    i = for_the_vibe(res)
+    x = [task.get_task_id() for task in res[:i]]
+    tot = sum([task.get_duration() for task in res[:i]])
+    if tot > 1440:
+        print(tot)
+    if tot == 0:
+        print("zero")
+    return x
     
+def for_the_vibe(tasks):
+    time, index = 0, 0
+    for i in range(len(tasks)):
+        dur = tasks[i].get_duration()
+        if time + dur > 1440:
+            index += i
+            break
+        time += dur
+    return index
 
 def basic_greedy(tasks):
     """
@@ -78,8 +94,7 @@ def simulated_annealing(s, last_task):
         output: the final task array with optimal values
     """
     t = 200 # should be large. But need further testing
-    k = 2000
-    while not k: 
+    while t: 
         s_prime = permute(s, last_task)
         old_cost, old_last_task = cost(s)
         new_cost, last_task = cost(s_prime)
@@ -89,14 +104,15 @@ def simulated_annealing(s, last_task):
         else:
             # TODO
             # replace s = s_price with probability of e^(-delta/t)
-            p = min(1, math.exp(delta/t))
+            p = 1
+            if t: 
+                p = math.exp(delta/t)
             epsilon = random.random()
             if epsilon > p:
                 s = s_prime
             else:
                 last_task = old_last_task
-        t -= 1
-        k -= 1
+        t -= 0.5
     return s, last_task
 
 def freeze(task_lst):
@@ -107,7 +123,9 @@ def permute(task_lst, not_used):
     # TODO
     # given a task, we need to know where the num_b4_ddl_pass is 
     cp = copy.copy(task_lst)
-    i = random.randint(0, not_used)
+    if len(task_lst) == 0:
+        print("zero!")
+    i = random.randint(0, len(task_lst)-1)
     j = random.randint(0, len(task_lst)-1)
     temp = cp[i]
     cp[i] = cp[j]
@@ -121,13 +139,14 @@ def cost(task_lst):
         total_cost: the total cost of this task list
         num_b4_ddl_pass: the index of last tasks can we actually completed before the deadline. 
     """
-    time_spent, total_cost = 0, 0
-    num_b4_ddl_pass = 0
+
+    time_spent, total_cost, num_b4_ddl_pass = 0, 0, 0
     for i, task in enumerate(task_lst):
-        if time_spent > 1440:
-            num_b4_ddl_pass = i
+        dur = task.get_duration()
+        if time_spent + dur > 1440:
+            num_b4_ddl_pass = i - 1
             break
-        end_time = time_spent + task.get_duration()
+        end_time = time_spent + dur
         ddl = task.get_deadline()
         total_cost += task.get_late_benefit(max(0, end_time - ddl))
     return total_cost, num_b4_ddl_pass
