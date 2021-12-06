@@ -49,6 +49,7 @@ def solve(tasks):
     last_task = find_last_task(combined)
     res, index = simulated_annealing(list(combined), last_task) # apply simulated annealing to the base array
     #print([task.get_task_id() for task in res[:index]])
+    index = find_last_task(res)
     return [task.get_task_id() for task in res[:index]]
 
 def find_last_task(tasks):
@@ -56,7 +57,7 @@ def find_last_task(tasks):
     last_task = 0
     for task in tasks:
         total_duration += task.get_duration()
-        if total_duration >= 1440:
+        if total_duration > 1440:
             break
         last_task += 1
     return last_task
