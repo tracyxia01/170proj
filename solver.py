@@ -324,7 +324,7 @@ def simulated_annealing(s, last_task):
         output: the final task array with optimal values
     """
     t = 200 # should be large. But need further testing
-    k = 2000
+    k = 20000
     while k > 0:
         #print(1)
         s_prime = permute(s, last_task)
@@ -373,7 +373,6 @@ def cost(task_lst):
         num_b4_ddl_pass: the index of last tasks can we actually completed before the deadline.
     """
     time_spent, total_cost, num_b4_ddl_pass = 0, 0, 0
-    i = 0
     for task in task_lst:
         time_spent += task.get_duration()
         if time_spent > 1440:
