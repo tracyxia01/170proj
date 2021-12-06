@@ -1,51 +1,8 @@
 from parse import read_input_file, write_output_file
 import os
-
-# original implementation:
-'''
-def solve(tasks):
-    """
-    Args:
-        tasks: list[Task], list of igloos to polish
-    Returns:
-        output: list of igloos in order of polishing
-    """
-    # first we have to sort the file
-    tasks.sort(key = lambda x: x.get_max_benefit())
-    timeslots = [0] * 1440
-    for task in tasks:
-        id = task.get_task_id()
-        deadline = task.get_deadline()
-        duration = task.get_duration()
-        find_slot(deadline, timeslots, id, duration)
-    sequence = set(timeslots)
-    sequence.discard(0)
-    return list(sequence)
-
-def find_slot(end_time, timeslots, id, duration):
-    curr_end = end_time
-    curr_start = curr_end - duration
-    found = False
-    while curr_start >= 0 and not found:
-        if sum(timeslots[curr_start : curr_end]) == 0:
-            for i in range(curr_start, curr_end):
-                timeslots[i] = id
-            found = True
-        else:
-            curr_end -=  1
-            curr_start -= 1
-'''
-
-
-###
-###
-###     TODO: unit-test and input-test each step function and helper function and debug if needed
-###     TODO: learn how to use cloud computing platforms if necessary
-###     TODO: implement a non-deterministic solution by incorporating randomness
-###
-###
-
-
+import copy
+import random
+import math
 
 """
 Functions:
@@ -70,8 +27,43 @@ timeslots = [0] * 1440  # timeslots : 0 ~ 1439
 tasks_global = None             # current task
 
 def solve(tasks):
+    #print(2)
+    """
+    Args:
+        tasks: list[Task], list of igloos to polish
+    Returns:
+        output: list of igloos in order of polishing
+    """
+    unsorted = copy.copy(tasks)
     # sort all tasks in increasing profit/duration ratio
     tasks.sort(reverse = True, key = lambda x: (x.get_max_benefit() / x.get_duration()))
+    base = basic_greedy(tasks) # We first find the base
+    base_objects = []
+    for id in base:
+        base_objects = base_objects + [unsorted[id-1]]
+    base = base_objects # now base itself is a list of task objects
+    #last_task = len(base)
+    combined = base + tasks
+    combined = set(combined)
+    #seq = [x.get_task_id() for x in combined]
+    last_task = find_last_task(combined)
+    res, index = simulated_annealing(list(combined), last_task) # apply simulated annealing to the base array
+    #print([task.get_task_id() for task in res[:index]])
+    index = find_last_task(res)
+    return [task.get_task_id() for task in res[:index]]
+
+def find_last_task(tasks):
+    total_duration = 0
+    last_task = 0
+    for task in tasks:
+        total_duration += task.get_duration()
+        if total_duration > 1440:
+            break
+        last_task += 1
+    return last_task
+
+
+def basic_greedy(tasks):
     # tasks.sort(key = lambda x: (x.get_max_benefit()))
     global timeslots
     #set global tasks:
@@ -323,17 +315,89 @@ def actual_forward_shift(front, deadline):
     return deadline - zero_counter
 
 
+def simulated_annealing(s, last_task):
+    """
+    Args:
+        s: the initial lst for SA
+        last_task: index of the last task completed before the deadline
+    Returns:
+        output: the final task array with optimal values
+    """
+    t = 200 # should be large. But need further testing
+    k = 20000
+    while k > 0:
+        #print(1)
+        s_prime = permute(s, last_task)
+        old_cost, old_last_task = cost(s)
+        new_cost, last_task = cost(s_prime)
+        delta = new_cost - old_cost
+        if delta > 0:
+            s = s_prime
+        else:
+            # TODO
+            # replace s = s_price with probability of e^(-delta/t)
+            if t > 0:
+                p = math.exp(delta/t)
+            else:
+                p = 1
+            epsilon = random.random()
+            if epsilon > p:
+                s = s_prime
+            else:
+                last_task = old_last_task
+        t -= 1
+        k -= 1
+
+    #seq = [x.get_task_id() for x in s_prime[:last_task]]
+    #print(last_task)
+    return s, last_task
+
+
+def permute(task_lst, not_used):
+    # TODO
+    # given a task, we need to know where the num_b4_ddl_pass is
+    cp = copy.copy(task_lst)
+    i = random.randint(0, not_used-1)
+    j = random.randint(0, len(task_lst)-1)
+    temp = cp[i]
+    cp[i] = cp[j]
+    cp[j] = temp
+
+    return cp
+
+def cost(task_lst):
+    # TODO
+    """
+    Returns:
+        total_cost: the total cost of this task list
+        num_b4_ddl_pass: the index of last tasks can we actually completed before the deadline.
+    """
+    time_spent, total_cost, num_b4_ddl_pass = 0, 0, 0
+    for task in task_lst:
+        time_spent += task.get_duration()
+        if time_spent > 1440:
+            break
+        ddl = task.get_deadline()
+        total_cost += task.get_late_benefit(max(0, time_spent - ddl))
+        num_b4_ddl_pass += 1
+    return total_cost, num_b4_ddl_pass
+
+
 if __name__ == '__main__':
     counter = 0
     for input_path in os.listdir('inputs/'):
-        if input_path == '.DS_Store':
+        if input_path == '.DS_Store':# or input_path == 'small' or input_path == 'medium':
             continue
         for input_path2 in os.listdir('inputs/' + input_path):
+            #if counter >= 10:
+            #    break
             if input_path2 == '.ipynb_checkpoints' or input_path2 == '.DS_Store':
                 continue
             output_path = 'outputs/' + input_path + '/' + input_path2[:-3] + '.out'
             tasks = read_input_file('inputs/' + input_path + '/' + input_path2[:-3] + '.in')
             output = solve(tasks)
             write_output_file(output_path, output)
+            print(output_path)
+            #counter += 1
         else:
             continue
