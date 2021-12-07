@@ -44,12 +44,15 @@ def solve(tasks):
     set_cluster_range(tasks)
     # sort all tasks in increasing profit/duration ratio
     tasks.sort(reverse = True, key = lambda x: (x.get_max_benefit() / x.get_duration()))
-    base = basic_greedy(tasks) # We first find the base
+    # base = basic_greedy(tasks) # We first find the base
+    base = tasks # tasks here are list of id's from the output file; thus we will run simulated annealing from our previous output file
+    
     #print(base)
     base_objects = []
     for id in base:
         base_objects = base_objects + [unsorted[id-1]]
     base = base_objects # now base itself is a list of task objects
+    old_cost = cost(base) # profit of previous output file
     #last_task = len(base)
     combined = base + tasks
     combined = set(combined)
@@ -57,6 +60,10 @@ def solve(tasks):
     last_task = find_last_task(combined)
     res, index = simulated_annealing(list(combined), last_task) # apply simulated annealing to the base array
     #print([task.get_task_id() for task in res[:index]])
+    # if the profit computed from current simmulated annealing is worse than that of our old output file, then keep the old task list 
+    if cost(res) < old_cost:
+        res = base
+    
     index = find_last_task(res)
     res = [task.get_task_id() for task in res[:index]]
     if len(res) != len(set(res)):
@@ -417,7 +424,9 @@ if __name__ == '__main__':
             if input_path2 == '.ipynb_checkpoints' or input_path2 == '.DS_Store':
                 continue
             output_path = 'outputs/' + input_path + '/' + input_path2[:-3] + '.out'
-            tasks = read_input_file('inputs/' + input_path + '/' + input_path2[:-3] + '.in')
+            # tasks = read_input_file('inputs/' + input_path + '/' + input_path2[:-3] + '.in')
+            tasks = read_outputput_file('outputs/' + input_path + '/' + input_path2[:-3] + '.out') # tasks here should be a list of IDs
+            
             print(input_path2)
             output = solve(tasks)
             write_output_file(output_path, output)
