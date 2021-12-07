@@ -329,7 +329,6 @@ def simulated_annealing(s, last_task):
     t = 2000 # should be large. But need further testing
     k = 10000
     while k > 0:
-        #print(1)
         s_prime = permute(s, last_task)
         old_cost, old_last_task = cost(s)
         new_cost, last_task = cost(s_prime)
@@ -337,7 +336,6 @@ def simulated_annealing(s, last_task):
         if delta > 0:
             s = s_prime
         else:
-            # TODO
             # replace s = s_price with probability of e^(-delta/t)
             if t > 0:
                 p = math.exp(delta/t)
@@ -351,9 +349,30 @@ def simulated_annealing(s, last_task):
         t -= 1
         k -= 1
 
-    #seq = [x.get_task_id() for x in s_prime[:last_task]]
-    #print(last_task)
     return s, last_task
+
+def clusters(tasks, num, limit, dur = False):
+    clusters = [[]] * num
+    range = limit / num
+    cluster_index = 0
+    temp = []
+    for task in tasks:
+        if not dur:
+            val = task.get_deadline()
+        else:
+            val = task.get_duration()
+        if val < range:
+            temp.append(task)
+        else:
+            if not dur:
+                temp = temp.sort(key = lambda x: (x.duration))
+                temp = clusters(temp, 12, 60, dur = True)
+            clusters[cluster_index] = temp
+            cluster_index += 1
+            range += range
+        range += 1
+    return clusters
+
 
 
 def permute(task_lst, not_used):
