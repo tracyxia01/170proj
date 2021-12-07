@@ -3,6 +3,7 @@ import os
 import copy
 import random
 import math
+import numpy as np
 
 """
 Functions:
@@ -34,6 +35,8 @@ def solve(tasks):
     Returns:
         output: list of igloos in order of polishing
     """
+
+    cluster = get_cluster(tasks)
     unsorted = copy.copy(tasks)
     # sort all tasks in increasing profit/duration ratio
     tasks.sort(reverse = True, key = lambda x: (x.get_max_benefit() / x.get_duration()))
@@ -47,10 +50,116 @@ def solve(tasks):
     combined = set(combined)
     #seq = [x.get_task_id() for x in combined]
     last_task = find_last_task(combined)
-    res, index = simulated_annealing(list(combined), last_task) # apply simulated annealing to the base array
+    res, index = simulated_annealing(list(combined), last_task, cluster) # apply simulated annealing to the base array
     #print([task.get_task_id() for task in res[:index]])
     index = find_last_task(res)
-    return [task.get_task_id() for task in res[:index]]
+    res = [task.get_task_id() for task in res[:index]]
+    if len(res) != len(set(res)):
+        print('nooo!')
+    return res
+
+def get_cluster(tasks):
+    """
+    Args:
+        tasks: List[Task]. The list of tasks we are working on
+    Returns:
+        clusters: A 2d array, where each elem contains everythin in cluster
+        Also modifies the cluster of each task. 
+    """
+    data_points = []
+    for tsk in tasks:
+        data_points.append([tsk.get_duration(), tsk.get_deadline()])
+    data_points = np.array(data_points)
+    centroids = create_centroids(len(tasks))
+    total_iteration = 100
+    
+    cluster_label = iterate_k_means(data_points, centroids, total_iteration)
+    res = post_process(tasks, cluster_label)
+    return res
+
+def create_centroids(tot_len):
+    # create some centroids
+    # need to change those values. 
+    """
+    Args:
+        tot_len: the total length of the array. Based on that we create different centroid
+    """
+    centroids = []
+    cluster_num = 0
+    if tot_len > 150:
+        cluster_num = 10
+    elif tot_len > 100:
+        cluster_num = 7
+    else:
+        cluster_num = 5
+    # small
+    # medium
+    # large
+    for i in range(cluster_num):
+        centroids.append([random.randint(0, 60), random.randint(0, 1440)])
+    return centroids
+
+def iterate_k_means(data_points, centroids, total_iteration):
+    """
+    Args:
+        data_points: List[Task.duration, Task.deadline]
+        centroids: the centroids we currently have
+        total_iteration: number of iterations we do. Now it's 100. 
+    Returns: 
+        cluster_label: List[data_point, cluster_number]
+            data_point: each individual data point in data_points
+    """
+    label = []
+    cluster_label = []
+    total_points = len(data_points)
+    k = len(centroids)
+    
+    for iteration in range(0, total_iteration):
+        for index_point in range(0, total_points):
+            distance = {}
+            for index_centroid in range(0, k):
+                distance[index_centroid] = compute_euclidean_distance(data_points[index_point], centroids[index_centroid])
+            label = assign_label_cluster(distance, data_points[index_point], centroids)
+            centroids[label[0]] = compute_new_centroids(label[1], centroids[label[0]])
+
+            if iteration == (total_iteration - 1):
+                cluster_label.append(label)
+
+    return cluster_label
+
+def compute_euclidean_distance(point, centroid):
+    return np.sqrt(np.sum((point - centroid)**2))
+
+def assign_label_cluster(distance, data_point, centroids):
+    index_of_minimum = min(distance, key=distance.get)
+    return [index_of_minimum, data_point, centroids[index_of_minimum]]
+
+def compute_new_centroids(cluster_label, centroids):
+    return np.array(cluster_label + centroids)/2
+
+def post_process(tasks, result):
+    """
+    Does two things: 1. return a dictionary of clusters. 2. update all the clusters for each task
+    Args:
+        tasks: List[Task]
+        result: List[cluster, data_point]
+    Return:
+        all_clusters: Dict{cluster: List[Tasks]}, tasks are grouped by clusters
+    """
+    # print("Result of k-Means Clustering: \n")
+    res = []
+    for data in result:
+        # print("data point: {}".format(data[1]))
+        # print("cluster number: {} \n".format(data[0]))
+        res.append(data[0])
+    # print(res)
+    all_clusters = dict()
+    for i in range(len(res)):
+        all_clusters.setdefault(res[i], []).append(tasks[i])
+        tasks[i].set_cluster(res[i])
+    # print(res)
+    # print([len(i) for i in all_clusters.values()])
+    return all_clusters
 
 def find_last_task(tasks):
     total_duration = 0
@@ -315,19 +424,20 @@ def actual_forward_shift(front, deadline):
     return deadline - zero_counter
 
 
-def simulated_annealing(s, last_task):
+def simulated_annealing(s, last_task, cluster):
     """
     Args:
         s: the initial lst for SA
         last_task: index of the last task completed before the deadline
+        cluster: the dictionary of cluster. Use it to permute
     Returns:
         output: the final task array with optimal values
     """
-    t = 20000 # should be large. But need further testing
-    k = 20500
+    t = 2000 # should be large. But need further testing
+    k = 10000
     while k > 0:
         #print(1)
-        s_prime = permute(s, last_task)
+        s_prime = permute(s, last_task, cluster)
         old_cost, old_last_task = cost(s)
         new_cost, last_task = cost(s_prime)
         delta = new_cost - old_cost
@@ -353,15 +463,28 @@ def simulated_annealing(s, last_task):
     return s, last_task
 
 
-def permute(task_lst, not_used):
+def permute(task_lst, not_used, cluster):
     # TODO
     # given a task, we need to know where the num_b4_ddl_pass is
+    """
+    Permute the task_lst array
+    """
+    # first, get the cluster
+
     cp = copy.copy(task_lst)
     i = random.randint(0, not_used-1)
-    j = random.randint(0, len(task_lst)-1)
-    k = random.randint(0, len(task_lst)-1)
-    cp[i], cp[j], cp[k] = cp[j], cp[k], cp[i]
+    task_i = cp[i]
+    # find which cluster i belongs to
+    cluster_of_i = cluster[task_i.get_cluster()]
+    # choose task j within the cluster
+    task_j = cluster_of_i[random.randint(0, len(cluster_of_i)-1)]
+    # find the index of task j
+    j = cp.index(task_j)
 
+    # swap i and j
+    temp = cp[i]
+    cp[i] = cp[j]
+    cp[j] = temp
     return cp
 
 def cost(task_lst):

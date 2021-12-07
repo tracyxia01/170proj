@@ -26,6 +26,7 @@ class Task:
         self.deadline = deadline
         self.duration = duration
         self.perfect_benefit = perfect_benefit
+        self.cluster = 0 # set the cluster to zero
         
     def get_task_id(self) -> int:
         """ 
@@ -96,3 +97,16 @@ class Task:
         return "Task {} has deadline {}, duration {}, and max benefit {}".format(self.get_task_id(), self.get_deadline(), self.get_duration(), self.get_max_benefit())
 
     # Feel free to add more helper functions here
+    def get_cluster(self) -> int:
+        """
+        Returns the tasks's current cluster
+        """
+        return self.cluster
+    
+    def set_cluster(self, new_cluster: int):
+        """
+        Args: 
+            new_cluster: the new cluster we want to set
+        Basically set the clust to the new_cluster value. 
+        """
+        self.cluster = new_cluster
