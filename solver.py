@@ -303,8 +303,8 @@ def simulated_annealing(s, last_task):
     Returns:
         output: the final task array with optimal values
     """
-    t = 5000 # should be large. But need further testing
-    k = 50000
+    t = 10000 # should be large. But need further testing
+    k = 20000
     while k > 0:
         s_prime = permute(s, last_task)
         old_cost, old_last_task = cost(s)
