@@ -25,9 +25,6 @@ Helper functions:
 # global variable
 timeslots = [0] * 1440  # timeslots : 0 ~ 1439
 tasks_global = None     # current task
-# two arrays with sorted duration and deadline
-tasks_duration_sorted = None  
-tasks_deadline_sorted = None
 # dimensions for the clusters
 duration_length = 0
 deadline_length = 0
@@ -63,15 +60,8 @@ def solve(tasks):
 # construct the two sorted arrays
 # will counstructed cluster based on this
 def construct_sorted_arrays(tasks):
-    global tasks_duration_sorted
-    global tasks_deadline_sorted
     global duration_length
     global deadline_length
-    # set the global variables
-    tasks_duration_sorted = copy.copy(tasks)
-    tasks_deadline_sorted = copy.copy(tasks)
-    tasks_duration_sorted.sort(key = lambda x: (x.get_duration()))
-    tasks_deadline_sorted.sort(key = lambda x: (x.get_deadline()))
     # the dimensions of clusters differ based on the size of the problem (small/medium/large)
     if tasks.length <= 100: # if small
         # split deadline into 3 parts and duration into 2 parts; 6 clusters total 
@@ -397,26 +387,23 @@ def permute(task_lst, not_used):
 
 # randomly pick another task that is within the cluster range of the current task; core function of the "smart random swap"
 def random_pick_in_cluster(curr_task):
-    """
     curr_id = curr_task.get_task_id()
     curr_duration = curr_task.get_duration()
     curr_deadline = curr_task.get_deadline()
-    potential_tasks = []
-    # iterate through sorted duration list
-    for task in tasks_duration_sorted {
-        # if the current task is within +/- duration_length / 2, then include it in the 
-        if abs(task.get_duration() - curr_duration) <= duration_length / 2.0:
-    """
-    # the two arrays doesn't even needed to be sorted!!
-    # iterate through unsorted task array
-    # check if the task at current iteration is within (+/- duration_length / 2) and (+/- deadline_length / 2)
-        # if yes, place the current task into potential_tasks
-    # randomly pick a task within potential_tasks as j
-    # potential_tasks can just be a list of task objects
+    potential_tasks = [] # list of tasks that are within the cluster aka the bound
+    # iterate through all tasks
+    for task in task_global:
+        task_duration = task.get_duration()
+        task_deadline = task.get_deadline()
+        # automatically considers tasks that are close to the edge of the ranges of deadline and duration
+        if_within_duration = abs(task_duration - curr_duration) <= duration_length / 2.0
+        if_within_deadline = abs(task_deadline - curr_deadline) <= deadline_length / 2.0
+        # if task within both bounds, then add it to potential_tasks
+        if task.get_task_id() != curr_id and if_within_duration and if_within_deadline:
+            potential_tasks += [task]
+    # return a random task from potential_tasks
+    return potential_tasks[random.randint(0, potential_tasks.length)]
 
-    # also delete the sorted arrays, just keep duration_length and deadline_length
-    
-    
 
 def cost(task_lst):
     # TODO
