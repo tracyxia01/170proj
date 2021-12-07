@@ -349,6 +349,7 @@ def simulated_annealing(s, last_task):
         t -= 1
         k -= 1
 
+
     return s, last_task
 
 def clusters(tasks, num, limit, dur = False):
