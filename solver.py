@@ -323,8 +323,8 @@ def simulated_annealing(s, last_task):
     Returns:
         output: the final task array with optimal values
     """
-    t = 200 # should be large. But need further testing
-    k = 20000
+    t = 20000 # should be large. But need further testing
+    k = 20500
     while k > 0:
         #print(1)
         s_prime = permute(s, last_task)
@@ -335,12 +335,12 @@ def simulated_annealing(s, last_task):
             s = s_prime
         else:
             # TODO
-            # replace s = s_price with probability of e^(-delta/t)
+            # replace s = s_price with probability of e^(delta/t)
             if t > 0:
                 p = math.exp(delta/t)
             else:
                 p = 1
-            epsilon = random.random()
+            epsilon = random.random() # random decimal between [0,1]
             if epsilon > p:
                 s = s_prime
             else:
@@ -359,9 +359,8 @@ def permute(task_lst, not_used):
     cp = copy.copy(task_lst)
     i = random.randint(0, not_used-1)
     j = random.randint(0, len(task_lst)-1)
-    temp = cp[i]
-    cp[i] = cp[j]
-    cp[j] = temp
+    k = random.randint(0, len(task_lst)-1)
+    cp[i], cp[j], cp[k] = cp[j], cp[k], cp[i]
 
     return cp
 
