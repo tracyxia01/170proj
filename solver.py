@@ -24,7 +24,10 @@ Helper functions:
 
 # global variable
 timeslots = [0] * 1440  # timeslots : 0 ~ 1439
-tasks_global = None             # current task
+tasks_global = None     # current task
+# dimensions for the clusters
+duration_length = 0
+deadline_length = 0
 
 def solve(tasks):
     #print(2)
@@ -34,10 +37,16 @@ def solve(tasks):
     Returns:
         output: list of igloos in order of polishing
     """
+    global timeslots
+    global task_global
     unsorted = copy.copy(tasks)
+
+    # construct the two sorted arrays for the smart swapping needed in simulated annealing
+    construct_sorted_arrays(tasks)
     # sort all tasks in increasing profit/duration ratio
     tasks.sort(reverse = True, key = lambda x: (x.get_max_benefit() / x.get_duration()))
     base = basic_greedy(tasks) # We first find the base
+    #print(base)
     base_objects = []
     for id in base:
         base_objects = base_objects + [unsorted[id-1]]
@@ -53,7 +62,25 @@ def solve(tasks):
     res = [task.get_task_id() for task in res[:index]]
     if len(res) != len(set(res)):
         print("omg dzdfghm")
+    timeslots = [0] * 1440
+    tasks_global = None
     return list(res)
+
+# construct the two sorted arrays
+# will counstructed cluster based on this
+def construct_sorted_arrays(tasks):
+    global duration_length
+    global deadline_length
+    # the dimensions of clusters differ based on the size of the problem (small/medium/large)
+    if len(tasks) <= 100: # if small
+        # split deadline into 3 parts and duration into 2 parts; 6 clusters total
+        deadline_length, duration_length = (480, 30)
+    elif len(tasks) <= 150: # if medium
+        # split deadline into 4 parts and duration into 3 parts; 12 clusters total
+        deadline_length, duration_length = (360, 20)
+    else: #if large
+        # split deadline into 5 parts and duration into 4 parts; 20 clusters total
+        deadline_length, duration_length = (288, 15)
 
 def find_last_task(tasks):
     total_duration = 0
@@ -67,7 +94,6 @@ def find_last_task(tasks):
 
 
 def basic_greedy(tasks):
-    # tasks.sort(key = lambda x: (x.get_max_benefit()))
     global timeslots
     #set global tasks:
     global tasks_global
@@ -86,18 +112,6 @@ def basic_greedy(tasks):
         if not place_task_before_ddl(id, deadline, duration):
             # before running step 2, calcuate the amount of the free space from 0 to current deadline,
             # and if there are less space than duration, then skip step 2 and jump to step 3
-            """
-            # orignal solution; commented out for now to ignore running step 3
-            if if_enough_space(deadline, duration):
-                # Step 2: start shifting tasks backwards from t = deadline - 1 to t = 0
-                shift_tasks_forward(deadline, duration)
-                place_task(id, start, duration)
-            # Step 3: shift current task backward so that it finishes after its duration
-            if_place_task = shift_tasks_backward(deadline, duration, i)
-            # Step 4: if we decide not to place current task, revert timeslot to before step 2 condition
-            if not if_place_task:
-                timeslots = timeslots_copy
-            """
 
             # for now we don't run step 3
             if if_enough_space(deadline, duration):
@@ -107,26 +121,10 @@ def basic_greedy(tasks):
             else:
                 timeslots = timeslots_copy
 
-            """
-            # nerfed step 3
-            if if_enough_space(deadline, duration):
-                # Step 2: start shifting tasks backwards from t = deadline - 1 to t = 0
-                shift_tasks_forward(deadline, duration)
-                place_task(id, start, duration)
-            # Step 3: shift current task backward so that it finishes after its duration
-            if_place_task = shift_tasks_backward(deadline, duration, i)
-            # Step 4: if we decide not to place current task, revert timeslot to before step 2 condition
-            if not if_place_task:
-                timeslots = timeslots_copy
-            """
-
-
     # format timeslots for the final output
     output_sequence = set(timeslots)
     output_sequence.discard(0)
     # reset timeslots; TODO: is this necessary here? Afraid that global variables won't reset between EACH PROBLEM
-    timeslots = [0] * 1440
-    tasks_global = None
     # return our outputs
     return list(output_sequence)
 
@@ -326,8 +324,8 @@ def simulated_annealing(s, last_task):
     Returns:
         output: the final task array with optimal values
     """
-    t = 2000 # should be large. But need further testing
-    k = 10000
+    t = 5000 # should be large. But need further testing
+    k = 50000
     while k > 0:
         s_prime = permute(s, last_task)
         old_cost, old_last_task = cost(s)
@@ -379,25 +377,37 @@ def permute(task_lst, not_used):
     # TODO
     # given a task, we need to know where the num_b4_ddl_pass is
     cp = copy.copy(task_lst)
-    i = random.randint(0, not_used-1)
-    j = random.randint(0, len(task_lst)-1)
-    #k = random.randint(0, len(task_lst)-1)
-    # temp1 = cp[j]
-    # temp2 = cp[k]ß
-    #
-    # cp[k] = cp[i]
-    # cp[i] = temp1
-    # cp[j] = temp2
-    #cp[i], cp[j] = cp[j], cp[i]
-    temp = cp[j]
-    cp[j] = cp[i]
-    cp[i] = temp
-
-    #temp = cp[k]
-    #cp[k] = cp[j]
-    #cp[j] = temp
-
+    i = random.randint(0, not_used-1) # task_lst[i] is a task within our current output task list
+    task = random_pick_in_cluster(task_lst[i]) # task_lst[j] isn't in the output task list
+    j = task_lst.index(task)
+    if i == j:
+        j = random.randint(0, len(task_lst)-1)
+    temp = cp[i]
+    cp[i] = cp[j]
+    cp[j] = temp
     return cp
+
+# randomly pick another task that is within the cluster range of the current task; core function of the "smart random swap"
+def random_pick_in_cluster(curr_task):
+    curr_id = curr_task.get_task_id()
+    curr_duration = curr_task.get_duration()
+    curr_deadline = curr_task.get_deadline()
+    potential_tasks = [] # list of tasks that are within the cluster aka the bound
+    # iterate through all tasks
+    for task in tasks_global:
+        task_duration = task.get_duration()
+        task_deadline = task.get_deadline()
+        # automatically considers tasks that are close to the edge of the ranges of deadline and duration
+        if_within_duration = abs(task_duration - curr_duration) <= duration_length / 2.0
+        if_within_deadline = abs(task_deadline - curr_deadline) <= deadline_length / 2.0
+        # if task within both bounds, then add it to potential_tasks
+        if task.get_task_id() != curr_id and if_within_duration and if_within_deadline:
+            potential_tasks += [task]
+    # return a random task from potential_tasks
+    if len(potential_tasks) <= 1:
+        return curr_task
+    return potential_tasks[random.randint(0, len(potential_tasks)-1)] #NOT SURE ABOUT THE -1 BUT IT WAS OUT OF BOUNDS
+
 
 def cost(task_lst):
     # TODO
@@ -429,9 +439,9 @@ if __name__ == '__main__':
                 continue
             output_path = 'outputs/' + input_path + '/' + input_path2[:-3] + '.out'
             tasks = read_input_file('inputs/' + input_path + '/' + input_path2[:-3] + '.in')
+            print(input_path2)
             output = solve(tasks)
             write_output_file(output_path, output)
-            print(counter)
-            counter += 1
+            #counter += 1
         else:
             continue
