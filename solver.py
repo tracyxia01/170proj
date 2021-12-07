@@ -50,7 +50,10 @@ def solve(tasks):
     res, index = simulated_annealing(list(combined), last_task) # apply simulated annealing to the base array
     #print([task.get_task_id() for task in res[:index]])
     index = find_last_task(res)
-    return [task.get_task_id() for task in res[:index]]
+    res = [task.get_task_id() for task in res[:index]]
+    if len(res) != len(set(res)):
+        print("omg dzdfghm")
+    return list(res)
 
 def find_last_task(tasks):
     total_duration = 0
@@ -323,8 +326,8 @@ def simulated_annealing(s, last_task):
     Returns:
         output: the final task array with optimal values
     """
-    t = 6000 # should be large. But need further testing
-    k = 60000
+    t = 2000 # should be large. But need further testing
+    k = 10000
     while k > 0:
         #print(1)
         s_prime = permute(s, last_task)
@@ -359,9 +362,21 @@ def permute(task_lst, not_used):
     cp = copy.copy(task_lst)
     i = random.randint(0, not_used-1)
     j = random.randint(0, len(task_lst)-1)
-    temp = cp[i]
-    cp[i] = cp[j]
-    cp[j] = temp
+    #k = random.randint(0, len(task_lst)-1)
+    # temp1 = cp[j]
+    # temp2 = cp[k]ß
+    #
+    # cp[k] = cp[i]
+    # cp[i] = temp1
+    # cp[j] = temp2
+    #cp[i], cp[j] = cp[j], cp[i]
+    temp = cp[j]
+    cp[j] = cp[i]
+    cp[i] = temp
+
+    #temp = cp[k]
+    #cp[k] = cp[j]
+    #cp[j] = temp
 
     return cp
 
@@ -397,7 +412,7 @@ if __name__ == '__main__':
             tasks = read_input_file('inputs/' + input_path + '/' + input_path2[:-3] + '.in')
             output = solve(tasks)
             write_output_file(output_path, output)
-            print(output_path)
-            #counter += 1
+            print(counter)
+            counter += 1
         else:
             continue
