@@ -38,8 +38,8 @@ def solve(tasks):
         output: list of igloos in order of polishing
     """
     unsorted = copy.copy(tasks)
-    # construct the two sorted arrays for the smart swapping needed in simulated annealing
-    construct_sorted_arrays(tasks)
+    # set the range of the 2D cluster in smart swapping needed in simulated annealing
+    set_cluster_range(tasks)
     # sort all tasks in increasing profit/duration ratio
     tasks.sort(reverse = True, key = lambda x: (x.get_max_benefit() / x.get_duration()))
     base = basic_greedy(tasks) # We first find the base
@@ -57,9 +57,9 @@ def solve(tasks):
     index = find_last_task(res)
     return [task.get_task_id() for task in res[:index]]
 
-# construct the two sorted arrays
+# set deadline and duration range for the cluster
 # will counstructed cluster based on this
-def construct_sorted_arrays(tasks):
+def set_cluster_range(tasks):
     global duration_length
     global deadline_length
     # the dimensions of clusters differ based on the size of the problem (small/medium/large)
@@ -82,7 +82,6 @@ def find_last_task(tasks):
             break
         last_task += 1
     return last_task
-
 
 def basic_greedy(tasks):
     # tasks.sort(key = lambda x: (x.get_max_benefit()))
@@ -179,25 +178,6 @@ def place_task_before_ddl(id, deadline, duration):
 def shift_tasks_forward(deadline, duration):
     # note that if we run step 2, then there must be enough free space to place task 2
     counter = 0
-    '''
-    # two pointers, front and back
-    back = deadline - 1
-    for front in range(deadline - 1, -1, -1):
-        if timeslots[front] == 0:
-
-            # front != back only when there's task(s) in between the two pointers
-            if front != back:
-                # TODO need to implement correct shift
-                shift_by_one(front, back, True)
-                timeslots[front] = timeslots[back]
-                timeslots[back] = 0 # back will always ending up pointing to the end of a task
-            back -= 1
-            counter += 1
-            # if the length of the free space is equal to duration, then return; note that we want to shift minimally
-            if counter == duration:
-
-                return
-    '''
     # front is ther pointer; iterate backwards
     for front in range(deadline - 1, -1, -1):
         if timeslots[front] == 0:
@@ -435,6 +415,9 @@ if __name__ == '__main__':
                 continue
             output_path = 'outputs/' + input_path + '/' + input_path2[:-3] + '.out'
             tasks = read_input_file('inputs/' + input_path + '/' + input_path2[:-3] + '.in')
+            
+            # print('start working on ' + input_path + '/' + input_path2)
+            
             output = solve(tasks)
             write_output_file(output_path, output)
             print(output_path)
