@@ -51,10 +51,18 @@ def solve(tasks):
     #seq = [x.get_task_id() for x in combined]
     # TEST TEST TEST TODO TODO
     last_task = find_last_task(tasks)
-    res, index = simulated_annealing(list(tasks), last_task, cluster) # apply simulated annealing to the base array
+    res1, index1 = simulated_annealing(list(tasks), last_task, cluster) # apply simulated annealing to the base array
+    for i in range(10):
+        res1, index1 = simulated_annealing(list(res1), index1, cluster)
+        # last_task = index1
+        # tasks = res1 
+    # res2, index2 = simulated_annealing(list(res1), index1, cluster)
+    # res3, index3 = simulated_annealing(list(res2), index2, cluster)
+    # res4, index4 = simulated_annealing(list(res3), index3, cluster)
+    # res5, index5 = simulated_annealing(list(res4), index4, cluster)
     #print([task.get_task_id() for task in res[:index]])
-    index = find_last_task(res)
-    res = [task.get_task_id() for task in res[:index]]
+    index = find_last_task(res1)
+    res = [task.get_task_id() for task in res1[:index]]
     # if len(res) != len(set(res)):
     #     print('nooo!')
     return res
@@ -86,13 +94,7 @@ def create_centroids(tot_len):
         tot_len: the total length of the array. Based on that we create different centroid
     """
     centroids = []
-    cluster_num = 0
-    if tot_len > 150:
-        cluster_num = 1
-    elif tot_len > 100:
-        cluster_num = 1
-    else:
-        cluster_num = 1
+    cluster_num = 1
     # small
     # medium
     # large
@@ -370,35 +372,27 @@ def simulated_annealing(s, last_task, cluster):
     print(BOF)
     best_order = s
     for i in range(k): # while we don't have a freeze
-        #print(1)
-        for j in range(1): # number of neighbors to visite per iteration. try to set it to 15
-            old_cost, old_last_task = cost(s)
-            # print(old_cost)
-            s_prime = permute(s, last_task, cluster)
-            new_cost, last_task = cost(s_prime)
-            # print(new_cost)
-            delta = new_cost - old_cost
-            if delta > 0:
-                s = s_prime
-                if new_cost > BOF:
-                    BOF = new_cost
-                    best_order = s_prime
+        old_cost, old_last_task = cost(s)
+        s_prime = permute(s, last_task, cluster)
+        new_cost, last_task = cost(s_prime)
+        delta = new_cost - old_cost
+        if delta > 0:
+            s = s_prime
+            if new_cost > BOF:
+                BOF = new_cost
+                best_order = s_prime
+        else:
+            if t > 0:
+                p = math.exp(delta/t)
             else:
-                # TODO
-                # replace s = s_price with probability of e^(delta/t)
-                if t > 0:
-                    p = math.exp(delta/t)
-                else:
-                    p = 1
-                epsilon = random.random() # random decimal between [0,1]
-                if epsilon > p:
-                    s = s_prime
-                else:
-                    last_task = old_last_task
-        t = t-10
+                p = 1
+            epsilon = random.random()
+            if epsilon > p:
+                s = s_prime
+            else:
+                last_task = old_last_task
+        t = t-15
 
-    #seq = [x.get_task_id() for x in s_prime[:last_task]]
-    #print(last_task)
     print("end:")
     print(BOF)
     return best_order, last_task
@@ -411,10 +405,11 @@ def permute(task_lst, not_used, cluster):
     Permute the task_lst array
     """
     # first, get the cluster
-
     cp = copy.copy(task_lst)
     i = random.randint(0, not_used-1)
-    task_i = cp[i]
+    [j, k] = random.sample(range(len(task_lst)), 2)
+
+    '''task_i = cp[i]
     # find which cluster i belongs to
     cluster_of_i = cluster[task_i.get_cluster()]
     # choose task j within the cluster
@@ -426,6 +421,11 @@ def permute(task_lst, not_used, cluster):
     task_k = cluster_of_i[random.randint(0, len(cluster_of_i)-1)]
     # find the index of task j
     k = cp.index(task_k)
+    
+    # choose task k within the cluster
+    task_l = cluster_of_i[random.randint(0, len(cluster_of_i)-1)]
+    # find the index of task j
+    l = cp.index(task_l)'''
 
     # swap i and j
     temp = cp[i]
@@ -433,9 +433,11 @@ def permute(task_lst, not_used, cluster):
     cp[j] = temp
 
     # swap j and k. DOUBLE SWAP TO SEEE IF WE CAN GET A BETTER ANSWER
+    # I AM ON THE VERGE OF BREAKING INTO TEARS I NEED THIS TO END. 
     temp2 = cp[j]
     cp[j] = cp[k]
     cp[k] = temp2
+
     return cp
 
 def cost(task_lst):
