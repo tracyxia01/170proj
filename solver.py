@@ -49,13 +49,14 @@ def solve(tasks):
     combined = base + tasks
     combined = set(combined)
     #seq = [x.get_task_id() for x in combined]
-    last_task = find_last_task(combined)
-    res, index = simulated_annealing(list(combined), last_task, cluster) # apply simulated annealing to the base array
+    # TEST TEST TEST TODO TODO
+    last_task = find_last_task(tasks)
+    res, index = simulated_annealing(list(tasks), last_task, cluster) # apply simulated annealing to the base array
     #print([task.get_task_id() for task in res[:index]])
     index = find_last_task(res)
     res = [task.get_task_id() for task in res[:index]]
-    if len(res) != len(set(res)):
-        print('nooo!')
+    # if len(res) != len(set(res)):
+    #     print('nooo!')
     return res
 
 def get_cluster(tasks):
@@ -87,11 +88,11 @@ def create_centroids(tot_len):
     centroids = []
     cluster_num = 0
     if tot_len > 150:
-        cluster_num = 10
+        cluster_num = 1
     elif tot_len > 100:
-        cluster_num = 7
+        cluster_num = 1
     else:
-        cluster_num = 5
+        cluster_num = 1
     # small
     # medium
     # large
@@ -267,25 +268,7 @@ def place_task_before_ddl(id, deadline, duration):
 def shift_tasks_forward(deadline, duration):
     # note that if we run step 2, then there must be enough free space to place task 2
     counter = 0
-    '''
-    # two pointers, front and back
-    back = deadline - 1
-    for front in range(deadline - 1, -1, -1):
-        if timeslots[front] == 0:
 
-            # front != back only when there's task(s) in between the two pointers
-            if front != back:
-                # TODO need to implement correct shift
-                shift_by_one(front, back, True)
-                timeslots[front] = timeslots[back]
-                timeslots[back] = 0 # back will always ending up pointing to the end of a task
-            back -= 1
-            counter += 1
-            # if the length of the free space is equal to duration, then return; note that we want to shift minimally
-            if counter == duration:
-
-                return
-    '''
     # front is ther pointer; iterate backwards
     for front in range(deadline - 1, -1, -1):
         if timeslots[front] == 0:
@@ -328,59 +311,6 @@ def shift_tasks_backward(deadline, duration, current_i):
             extra_space_needed -= 1
         back_shift_end += 1
 
-    """
-
-    ###
-    ### TODO: simplify logic for shifting "blue region" tasks backwards
-    ###
-
-    # shift necessary shifts backwards first
-    shifted_timeslots = []
-    zero_counter = 0
-
-    # add all the non-zero slots to the temp shifted_timeslots first
-    for i in range(deadline, back_shift_end):
-        if timeslots[i] != 0:
-            shifted_timeslots.append(timeslots[i])
-        else:
-            zero_counter += 1
-    # add the empt y slots to the front
-    shifted_timeslots = [0] * zero_counter + shifted_timeslots
-    # the two ptrs are starting ptrs
-    preshift_ptr = deadline
-    postshift_ptr = deadline
-    loss = 0.0
-    while preshift_ptr < back_shift_end and postshift_ptr < back_shift_end:
-        while timeslots[preshift_ptr] == 0:
-            preshift_ptr += 1
-        while timeslots[postshift_ptr] == 0:
-            postshift_ptr += 1
-        # pre and post just means pre and post backward shifts
-        pre_ID = timeslots[preshift_ptr]
-        post_ID = timeslots[postshift_ptr]
-        '''
-        # TODO: unsure how to handle exception here but pre_ID and post_ID should be the same
-        if pre_ID != post_ID:
-            return False
-        '''
-        curr_task = tasks_global[timeslots[preshift_ptr]]
-        pre_late_min = preshift_ptr + curr_task.get_duration() - curr_task.get_deadline()
-        post_late_min = postshift_ptr + curr_task.get_duration() - curr_task.get_deadline()
-        # also need to consider tasks in preshift might also be overtime resulted from a previous iteration
-        pre_benefit = curr_task.get_max_benefit() if pre_late_min <= 0 else curr_task.get_late_benefit(pre_late_min)
-        post_benefit = curr_task.get_max_benefit() if post_late_min <= 0 else curr_task.get_late_benefit(post_late_min)
-        loss = loss + pre_benefit - post_benefit
-
-    # Compare losses, and if the profit loss of later tasks in item caused by delay is more than the
-    # partial profit brought by the current tasks, then don't add current task.
-    # OPTIMIZATION BE LIKE BRRRRR yeah idk but like if even if we get more profits by adding current delay one still gotta compare next one ig lmao
-    if current_ratio_with_delay - loss > 0.6 * next_task.get_max_benefit():
-        return False
-    # if we do include current task, copy the temp shifted_timeslots to the actual timeslots
-    for i in range(deadline, back_shift_end):
-        timeslots[i] = shifted_timeslots[i - deadline]
-    return True
-    """
 
 
 # helper function
@@ -433,34 +363,45 @@ def simulated_annealing(s, last_task, cluster):
     Returns:
         output: the final task array with optimal values
     """
-    t = 2000 # should be large. But need further testing
-    k = 10000
-    while k > 0:
+    t = 100 # should be large. But need further testing
+    k = 15000
+    BOF = cost(s)[0]
+    print("start:")
+    print(BOF)
+    best_order = s
+    for i in range(k): # while we don't have a freeze
         #print(1)
-        s_prime = permute(s, last_task, cluster)
-        old_cost, old_last_task = cost(s)
-        new_cost, last_task = cost(s_prime)
-        delta = new_cost - old_cost
-        if delta > 0:
-            s = s_prime
-        else:
-            # TODO
-            # replace s = s_price with probability of e^(delta/t)
-            if t > 0:
-                p = math.exp(delta/t)
-            else:
-                p = 1
-            epsilon = random.random() # random decimal between [0,1]
-            if epsilon > p:
+        for j in range(1): # number of neighbors to visite per iteration. try to set it to 15
+            old_cost, old_last_task = cost(s)
+            # print(old_cost)
+            s_prime = permute(s, last_task, cluster)
+            new_cost, last_task = cost(s_prime)
+            # print(new_cost)
+            delta = new_cost - old_cost
+            if delta > 0:
                 s = s_prime
+                if new_cost > BOF:
+                    BOF = new_cost
+                    best_order = s_prime
             else:
-                last_task = old_last_task
-        t -= 1
-        k -= 1
+                # TODO
+                # replace s = s_price with probability of e^(delta/t)
+                if t > 0:
+                    p = math.exp(delta/t)
+                else:
+                    p = 1
+                epsilon = random.random() # random decimal between [0,1]
+                if epsilon > p:
+                    s = s_prime
+                else:
+                    last_task = old_last_task
+        t = t-10
 
     #seq = [x.get_task_id() for x in s_prime[:last_task]]
     #print(last_task)
-    return s, last_task
+    print("end:")
+    print(BOF)
+    return best_order, last_task
 
 
 def permute(task_lst, not_used, cluster):
@@ -481,10 +422,20 @@ def permute(task_lst, not_used, cluster):
     # find the index of task j
     j = cp.index(task_j)
 
+    # choose task k within the cluster
+    task_k = cluster_of_i[random.randint(0, len(cluster_of_i)-1)]
+    # find the index of task j
+    k = cp.index(task_k)
+
     # swap i and j
     temp = cp[i]
     cp[i] = cp[j]
     cp[j] = temp
+
+    # swap j and k. DOUBLE SWAP TO SEEE IF WE CAN GET A BETTER ANSWER
+    temp2 = cp[j]
+    cp[j] = cp[k]
+    cp[k] = temp2
     return cp
 
 def cost(task_lst):
