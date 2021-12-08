@@ -40,14 +40,14 @@ def solve(tasks):
     unsorted = copy.copy(tasks)
     # sort all tasks in increasing profit/duration ratio
     tasks.sort(reverse = True, key = lambda x: (x.get_max_benefit() / x.get_duration()))
-    base = basic_greedy(tasks) # We first find the base
-    base_objects = []
-    for id in base:
-        base_objects = base_objects + [unsorted[id-1]]
-    base = base_objects # now base itself is a list of task objects
-    #last_task = len(base)
-    combined = base + tasks
-    combined = set(combined)
+    # base = basic_greedy(tasks) # We first find the base
+    # base_objects = []
+    # for id in base:
+    #     base_objects = base_objects + [unsorted[id-1]]
+    # base = base_objects # now base itself is a list of task objects
+    # #last_task = len(base)
+    # combined = base + tasks
+    # combined = set(combined)
     #seq = [x.get_task_id() for x in combined]
     # TEST TEST TEST TODO TODO
     last_task = find_last_task(tasks)
